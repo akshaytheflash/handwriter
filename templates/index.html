@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Handwriting PDF Generator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            text-align: center;
+            font-size: 28px;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 300px;
+            gap: 30px;
+        }
+
+        .text-section {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .settings-section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            height: fit-content;
+        }
+
+        .settings-section h2 {
+            font-size: 18px;
+            color: #333;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        textarea {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 16px;
+            font-family: inherit;
+            resize: vertical;
+            min-height: 300px;
+            transition: border-color 0.3s;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .slider-group {
+            margin-bottom: 20px;
+        }
+
+        .slider-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 13px;
+            color: #555;
+        }
+
+        .slider-value {
+            color: #667eea;
+            font-weight: 600;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            border-radius: 5px;
+            background: #ddd;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #667eea;
+            cursor: pointer;
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #667eea;
+            cursor: pointer;
+            border: none;
+        }
+
+        .char-count {
+            text-align: right;
+            color: #999;
+            font-size: 12px;
+            margin-top: 5px;
+        }
+
+        button {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin-top: auto;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            margin-top: 20px;
+            color: #667eea;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 10px auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error {
+            background: #fee;
+            color: #c33;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .success {
+            background: #efe;
+            color: #3c3;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>✍️ Handwriting PDF Generator</h1>
+        <p class="subtitle">Convert your text into beautiful handwritten PDFs</p>
+
+        <form id="pdfForm">
+            <div class="main-content">
+                <div class="text-section">
+                    <div class="form-group">
+                        <label for="textInput">Enter your text:</label>
+                        <textarea 
+                            id="textInput" 
+                            name="text" 
+                            placeholder="Type or paste your text here..."
+                            required
+                        ></textarea>
+                        <div class="char-count">
+                            <span id="charCount">0</span> characters
+                        </div>
+                    </div>
+
+                    <button type="submit" id="generateBtn">
+                        📄 Generate PDF
+                    </button>
+                </div>
+
+                <div class="settings-section">
+                    <h2>⚙️ Settings</h2>
+
+                    <div class="slider-group">
+                        <div class="slider-label">
+                            <span>Font Size</span>
+                            <span class="slider-value" id="fontSizeValue">0.5x</span>
+                        </div>
+                        <input type="range" id="fontSize" min="0.3" max="2" step="0.1" value="0.5">
+                    </div>
+
+                    <div class="slider-group">
+                        <div class="slider-label">
+                            <span>Left Margin</span>
+                            <span class="slider-value" id="leftMarginValue">50</span>
+                        </div>
+                        <input type="range" id="leftMargin" min="10" max="100" step="5" value="50">
+                    </div>
+
+                    <div class="slider-group">
+                        <div class="slider-label">
+                            <span>Right Margin</span>
+                            <span class="slider-value" id="rightMarginValue">50</span>
+                        </div>
+                        <input type="range" id="rightMargin" min="10" max="100" step="5" value="50">
+                    </div>
+
+                    <div class="slider-group">
+                        <div class="slider-label">
+                            <span>Top Margin</span>
+                            <span class="slider-value" id="topMarginValue">10</span>
+                        </div>
+                        <input type="range" id="topMargin" min="10" max="100" step="5" value="10">
+                    </div>
+
+                    <div class="slider-group">
+                        <div class="slider-label">
+                            <span>Bottom Margin</span>
+                            <span class="slider-value" id="bottomMarginValue">50</span>
+                        </div>
+                        <input type="range" id="bottomMargin" min="10" max="100" step="5" value="50">
+                    </div>
+
+                    <div class="slider-group">
+                        <div class="slider-label">
+                            <span>Line Height</span>
+                            <span class="slider-value" id="lineHeightValue">90</span>
+                        </div>
+                        <input type="range" id="lineHeight" min="50" max="150" step="5" value="90">
+                    </div>
+
+                    <div class="slider-group">
+                        <div class="slider-label">
+                            <span>Letter Spacing</span>
+                            <span class="slider-value" id="letterSpacingValue">5</span>
+                        </div>
+                        <input type="range" id="letterSpacing" min="0" max="20" step="1" value="5">
+                    </div>
+
+                    <div class="slider-group">
+                        <div class="slider-label">
+                            <span>Space Width</span>
+                            <span class="slider-value" id="spaceWidthValue">35</span>
+                        </div>
+                        <input type="range" id="spaceWidth" min="10" max="80" step="5" value="35">
+                    </div>
+                </div>
+            </div>
+        </form>
+
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>Generating your handwritten PDF...</p>
+        </div>
+
+        <div class="error" id="error"></div>
+        <div class="success" id="success">PDF downloaded successfully! ✓</div>
+    </div>
+
+    <script>
+        const form = document.getElementById('pdfForm');
+        const textInput = document.getElementById('textInput');
+        const charCount = document.getElementById('charCount');
+        const generateBtn = document.getElementById('generateBtn');
+        const loading = document.getElementById('loading');
+        const errorDiv = document.getElementById('error');
+        const successDiv = document.getElementById('success');
+
+        // Settings elements
+        const fontSize = document.getElementById('fontSize');
+        const leftMargin = document.getElementById('leftMargin');
+        const rightMargin = document.getElementById('rightMargin');
+        const topMargin = document.getElementById('topMargin');
+        const bottomMargin = document.getElementById('bottomMargin');
+        const lineHeight = document.getElementById('lineHeight');
+        const letterSpacing = document.getElementById('letterSpacing');
+        const spaceWidth = document.getElementById('spaceWidth');
+
+        // Update slider values display
+        fontSize.addEventListener('input', (e) => {
+            document.getElementById('fontSizeValue').textContent = e.target.value + 'x';
+        });
+        leftMargin.addEventListener('input', (e) => {
+            document.getElementById('leftMarginValue').textContent = e.target.value;
+        });
+        rightMargin.addEventListener('input', (e) => {
+            document.getElementById('rightMarginValue').textContent = e.target.value;
+        });
+        topMargin.addEventListener('input', (e) => {
+            document.getElementById('topMarginValue').textContent = e.target.value;
+        });
+        bottomMargin.addEventListener('input', (e) => {
+            document.getElementById('bottomMarginValue').textContent = e.target.value;
+        });
+        lineHeight.addEventListener('input', (e) => {
+            document.getElementById('lineHeightValue').textContent = e.target.value;
+        });
+        letterSpacing.addEventListener('input', (e) => {
+            document.getElementById('letterSpacingValue').textContent = e.target.value;
+        });
+        spaceWidth.addEventListener('input', (e) => {
+            document.getElementById('spaceWidthValue').textContent = e.target.value;
+        });
+
+        // Character counter
+        textInput.addEventListener('input', () => {
+            charCount.textContent = textInput.value.length;
+        });
+
+        // Form submission
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const text = textInput.value.trim();
+            if (!text) {
+                showError('Please enter some text');
+                return;
+            }
+
+            // Collect settings
+            const settings = {
+                font_size: parseFloat(fontSize.value),
+                left_margin: parseInt(leftMargin.value),
+                right_margin: parseInt(rightMargin.value),
+                top_margin: parseInt(topMargin.value),
+                bottom_margin: parseInt(bottomMargin.value),
+                line_height: parseInt(lineHeight.value),
+                letter_spacing: parseInt(letterSpacing.value),
+                space_width: parseInt(spaceWidth.value)
+            };
+
+            // Hide messages
+            errorDiv.style.display = 'none';
+            successDiv.style.display = 'none';
+
+            // Show loading
+            generateBtn.disabled = true;
+            loading.style.display = 'block';
+
+            try {
+                const response = await fetch('/generate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ text: text, settings: settings })
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Failed to generate PDF');
+                }
+
+                // Get the blob and create download link
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `handwritten_${Date.now()}.pdf`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+
+                // Show success
+                successDiv.style.display = 'block';
+                setTimeout(() => {
+                    successDiv.style.display = 'none';
+                }, 3000);
+
+            } catch (error) {
+                showError(error.message);
+            } finally {
+                generateBtn.disabled = false;
+                loading.style.display = 'none';
+            }
+        });
+
+        function showError(message) {
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+            setTimeout(() => {
+                errorDiv.style.display = 'none';
+            }, 5000);
+        }
+    </script>
+</body>
+</html>
