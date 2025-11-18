@@ -7,6 +7,7 @@ import io
 from datetime import datetime
 
 app = Flask(__name__)
+CORS(app)
 
 CHAR_DIR = "handwriting_trimmed"
 PAGE_WIDTH, PAGE_HEIGHT = A4
